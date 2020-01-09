@@ -4,11 +4,11 @@ yppeSurv <- function(time, z, par, rho, tau, n_int){
   q <- length(z)
   psi <- par[1:q]
   phi <- par[(q+1):(2*q)]
-  lambda <- par[(2*q+1):(2*q+n_int)]/tau
-  rho <- rho*tau
+  gamma <- par[(2*q+1):(2*q+n_int)]/tau
+  #rho <- rho*tau
   theta_S <- exp( as.numeric(z%*%psi) )
   theta_L <- exp( as.numeric(z%*%phi) )
-  Ht0 <- Hpexp(time, rho, lambda)
+  Ht0 <- Hpexp(time, rho, gamma)
   St0 <- exp(-Ht0)
   Ft0 <- 1-St0
   St <- exp( -theta_L*(log(theta_L*St0 + theta_S*Ft0)-(as.numeric(z%*%phi) - Ht0)  ) )
@@ -23,12 +23,12 @@ yppeSurv2 <- function(time, z, x, par, rho, tau, n_int){
   psi <- par[1:q]
   phi <- par[(q+1):(2*q)]
   beta <- par[(2*q+1):(2*q+p)]
-  lambda <- par[(2*q+p+1):(2*q+p+n_int)]/tau
-  rho <- rho*tau
+  gamma <- par[(2*q+p+1):(2*q+p+n_int)]/tau
+  #rho <- rho*tau
   theta_S <- exp( as.numeric(z%*%psi) )
   theta_L <- exp( as.numeric(z%*%phi) )
   theta_C <- exp( as.numeric(x%*%beta) )
-  Ht0 <- Hpexp(time, rho, lambda)
+  Ht0 <- Hpexp(time, rho, gamma)
   St0 <- exp(-Ht0)
   Ft0 <- 1-St0
   St <- exp( -theta_L*theta_C*(log(theta_L*St0 + theta_S*Ft0)-(as.numeric(z%*%phi) - Ht0)  ) )
@@ -102,7 +102,8 @@ survfit.yppe <- function(object, newdata, ...){
 
 
   if(object$approach=="mle"){
-    par <- object$fit$par[-grep("log_", names(object$fit$par))]
+    #par <- object$fit$par[-grep("log_", names(object$fit$par))]
+    par <- object$fit$par
     if(object$p==0){
       for(i in 1:nrow(newdata)){
         St[[i]] <- yppeSurv(time, Z[i,], par, rho, tau, n_int)
@@ -115,13 +116,13 @@ survfit.yppe <- function(object, newdata, ...){
   }else{ # Bayesian approach
     samp <- rstan::extract(object$fit)
     if(object$p==0){
-      par <- cbind(samp$psi, samp$phi, samp$lambda)
+      par <- cbind(samp$psi, samp$phi, samp$gamma)
       for(i in 1:nrow(newdata)){
         aux <- apply(par, 1, yppeSurv, time=time, z=Z[i,], rho=rho, tau=tau, n_int=n_int)
         St[[i]] <- apply(aux, 1, mean)
       }
     }else{
-      par <- cbind(samp$psi, samp$phi, samp$beta, samp$lambda)
+      par <- cbind(samp$psi, samp$phi, samp$beta, samp$gamma)
       for(i in 1:nrow(newdata)){
         aux <- apply(par, 1, yppeSurv2, time=time, z=Z[i,], x=X[i,], rho=rho, tau=tau, n_int=n_int)
         St[[i]] <- apply(aux, 1, mean)
@@ -264,7 +265,8 @@ crossTime.yppe <- function(object, newdata1, newdata2,
 
   if(object$approach=="mle"){
     t <- c()
-    par <- object$fit$par[-grep("log_", names(object$fit$par))]
+    #par <- object$fit$par[-grep("log_", names(object$fit$par))]
+    par <- object$fit$par
     for(i in 1:nrow(newdata1)){
       if(p==0){
         t[i] <- yppeCrossSurv(z1=z1[i,], z2=z2[i,], par=par, rho=rho, tau0=tau0, tau=tau, n_int=n_int)
@@ -294,14 +296,14 @@ crossTime.yppe <- function(object, newdata1, newdata2,
     t <- matrix(nrow=nrow(newdata1), ncol=3)
     samp <- rstan::extract(object$fit)
     if(object$p==0){
-      par <- cbind(samp$psi, samp$phi, samp$lambda)
+      par <- cbind(samp$psi, samp$phi, samp$gamma)
       for(i in 1:nrow(newdata1)){
         aux <- apply(par, 1, yppeCrossSurv, z1=z1[i,], z2=z2[i,], rho=rho, tau0=tau0, tau=tau, n_int=n_int)
         ci <- stats::quantile(aux, probs=prob, na.rm=TRUE)
         t[i,] <- c(mean(aux, na.rm=TRUE), ci)
       }
     }else{
-      par <- cbind(samp$psi, samp$phi, samp$beta, samp$lambda)
+      par <- cbind(samp$psi, samp$phi, samp$beta, samp$gamma)
       for(i in 1:nrow(newdata1)){
         aux <- apply(par, 1, yppeCrossSurv2, z1=z1[i,], z2=z2[i,], x=x[i,], rho=rho, tau0=tau0, tau=tau, n_int=n_int)
         ci <- stats::quantile(aux, probs=prob, na.rm=TRUE)

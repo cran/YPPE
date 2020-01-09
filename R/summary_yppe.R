@@ -78,7 +78,7 @@ summary.yppe <- function(object, ...){
 
     labels <- object$labels
     coefficients <- object$fit$par[1:(2*q+p)]
-    vcov <- solve(-object$fit$hessian)[1:(2*q+p),1:(2*q+p)]
+    vcov <- MASS::ginv(-object$fit$hessian)[1:(2*q+p),1:(2*q+p)]
 
     se <- sqrt(diag(vcov))
     zval <- coefficients / se

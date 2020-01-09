@@ -19,7 +19,7 @@ vector loglik1_pe(vector status, matrix Z, real tau, matrix ttt,  int[] idt, vec
   vector[n] aux;
 
 
-  lht0 = log(lambda[idt]) - log(tau);
+  lht0 = log(lambda[idt]); // - log(tau);
   Ht0 = ttt*lambda;
   Ft0 = -expm1(-Ht0);
   lp_short = Z*psi;
@@ -62,7 +62,7 @@ vector loglik2_pe(vector status, matrix Z, matrix X, real tau,
   vector[n] logmix;
   vector[n] aux;
 
-  lht0 = log(lambda[idt]) - log(tau);
+  lht0 = log(lambda[idt]); // - log(tau);
   Ht0 = ttt*lambda;
   Ft0 = -expm1(-Ht0);
   lp_short = Z*psi;

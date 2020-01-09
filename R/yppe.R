@@ -13,15 +13,15 @@ yppe.mle <- function(time, status, Z, n_int, rho, tau, hessian, ...) {
     }
   }
 
-  hyper_parms = list(mu_lambda=0, sigma_lambda=2,
+  hyper_parms = list(h1_gamma=0, h2_gamma=2,
                      mu_psi=0, sigma_psi=3,
                      mu_phi=0, sigma_phi=3,
                      mu_beta=0, sigma_beta=4)
 
   stan_data <- list(status=status, Z=Z, q=q, n=n, m=n_int,
                     tau=tau, ttt=ttt, approach=0, idt=idt,
-                    mu_lambda=hyper_parms$mu_lambda,
-                    sigma_lambda=hyper_parms$sigma_lambda,
+                    h1_gamma=hyper_parms$h1_gamma,
+                    h2_gamma=hyper_parms$h2_gamma,
                     mu_psi=hyper_parms$mu_psi,
                     mu_phi=hyper_parms$sigma_phi,
                     sigma_psi=hyper_parms$sigma_psi,
@@ -50,8 +50,8 @@ yppe.bayes <- function(time, status, Z, n_int, rho, tau, hyper_parms, ...) {
   }
   stan_data <- list(status=status, Z=Z, q=q, n=n, m=n_int,
                     tau=tau, ttt=ttt, approach=1, idt=idt,
-                    mu_lambda=hyper_parms$mu_lambda,
-                    sigma_lambda=hyper_parms$sigma_lambda,
+                    h1_gamma=hyper_parms$h1_gamma,
+                    h2_gamma=hyper_parms$h2_gamma,
                     mu_psi=hyper_parms$mu_psi,
                     mu_phi=hyper_parms$sigma_phi,
                     sigma_psi=hyper_parms$sigma_psi,
@@ -76,15 +76,15 @@ yppe2.mle <- function(time, status, Z, X, n_int, rho, tau, hessian, ...) {
     }
   }
 
-  hyper_parms = list(mu_lambda=0, sigma_lambda=4,
+  hyper_parms = list(h1_gamma=0, h2_gamma=4,
                      mu_psi=0, sigma_psi=4,
                      mu_phi=0, sigma_phi=4,
                      mu_beta=0, sigma_beta=4)
 
   stan_data <- list(status=status, Z=Z, X=X, p=p, q=q, n=n, m=n_int,
                     tau=tau, ttt=ttt, approach=0, idt=idt,
-                    mu_lambda=hyper_parms$mu_lambda,
-                    sigma_lambda=hyper_parms$sigma_lambda,
+                    h1_gamma=hyper_parms$h1_gamma,
+                    h2_gamma=hyper_parms$h2_gamma,
                     mu_psi=hyper_parms$mu_psi,
                     mu_phi=hyper_parms$sigma_phi,
                     sigma_psi=hyper_parms$sigma_psi,
@@ -117,8 +117,8 @@ yppe2.bayes <- function(time, status, Z, X, n_int, rho, tau, hyper_parms, ...) {
 
   stan_data <- list(status=status, Z=Z, X=X, p=p, q=q, n=n, m=n_int,
                     tau=tau, ttt=ttt, approach=1, idt=idt,
-                    mu_lambda=hyper_parms$mu_lambda,
-                    sigma_lambda=hyper_parms$sigma_lambda,
+                    h1_gamma=hyper_parms$h1_gamma,
+                    h2_gamma=hyper_parms$h2_gamma,
                     mu_psi=hyper_parms$mu_psi,
                     mu_phi=hyper_parms$sigma_phi,
                     sigma_psi=hyper_parms$sigma_psi,
@@ -161,7 +161,7 @@ yppe2.bayes <- function(time, status, Z, X, n_int, rho, tau, hyper_parms, ...) {
 #'
 yppe <- function(formula, data, n_int=NULL, rho=NULL, tau=NULL, hessian=TRUE,
                  approach = c("mle", "bayes"),
-                 hyper_parms = list(mu_lambda=0, sigma_lambda=4,
+                 hyper_parms = list(h1_gamma=0, h2_gamma=4,
                                     mu_psi=0, sigma_psi=4,
                                     mu_phi=0, sigma_phi=4,
                                     mu_beta=0, sigma_beta=4), ...){
@@ -193,13 +193,12 @@ yppe <- function(formula, data, n_int=NULL, rho=NULL, tau=NULL, hessian=TRUE,
   }
   time <- time/tau
 
-  if(is.null(n_int)){
-    n_int <- ceiling(sqrt(length(time)))
-  }
-
   if(is.null(rho)){
     rho <- timeGrid(time, status, n_int)
+  }else{
+    rho <- rho/tau
   }
+  n_int <- length(rho) - 1
 
   if(approach=="mle"){
     if(p==0){
@@ -226,7 +225,7 @@ yppe <- function(formula, data, n_int=NULL, rho=NULL, tau=NULL, hessian=TRUE,
   output$p <- p
 
   output$n_int <- n_int
-  output$rho <- rho
+  output$rho <- rho*tau
   output$tau <- tau
   output$call <- match.call()
   output$formula <- formula
@@ -275,13 +274,11 @@ yppeBoot <- function(formula, data, n_int=NULL, rho=NULL, tau=NULL,
   }
   time <- time/tau
 
-  if(is.null(n_int)){
-    n_int <- ceiling(sqrt(length(time)))
-  }
-
   if(is.null(rho)){
     rho <- timeGrid(time, status, n_int)
   }
+  n_int <- length(rho) - 1
+
 
   index <- 1:n
   index1 <- which(status==1)
@@ -296,7 +293,8 @@ yppeBoot <- function(formula, data, n_int=NULL, rho=NULL, tau=NULL,
     samp <- c(samp1, samp2)
     suppressWarnings({invisible(utils::capture.output(object <- yppe(formula, data=data[samp,], n_int=n_int, rho=rho, tau=tau, hessian=FALSE, approach="mle", init=0)))})
     if(class(object)!="try-error"){
-      par[step, ] <- object$fit$par[-grep("log_", names(object$fit$par))]
+      #par[step, ] <- object$fit$par[-grep("log_", names(object$fit$par))]
+      par[step, ] <- object$fit$par
       step <- step + 1
     }
   }
